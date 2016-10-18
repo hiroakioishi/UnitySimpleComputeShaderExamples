@@ -1,0 +1,17 @@
+﻿#pragma kernel CSMain // コンピュートカーネルを指定
+
+RWTexture2D<float4> _Result; // 計算結果を書き込む(Read/Write)Textureリソース
+
+// コンピュートカーネル
+[numthreads(8,8,1)] // コンピュートカーネルのスレッドの数を定義
+void CSMain (uint3 DTid : SV_DispatchThreadID,
+             uint3 Gid  : SV_GroupID,
+             uint3 GTid : SV_GroupThreadID,
+			 uint  GI   : SV_GroupIndex
+){
+	float width, height; // テクスチャの幅, 高さを格納する変数
+	_Result.GetDimensions(width, height); // テクスチャの幅, 高さを取得
+	
+	// DispatchThreadIDによってｘでは赤, yでは緑のグラデーションを描くように
+	_Result[DTid.xy] = float4(DTid.x / width, DTid.y / height, 0.0, 1.0);
+}

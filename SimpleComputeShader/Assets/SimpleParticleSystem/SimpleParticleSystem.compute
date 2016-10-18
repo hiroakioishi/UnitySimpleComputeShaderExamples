@@ -1,0 +1,84 @@
+﻿#pragma kernel CSMain  // カーネル関数を指定
+
+#define NUM_THREAD_X 8 // スレッド数 X成分
+#define NUM_THREAD_Y 1 // スレッド数 Y成分
+#define NUM_THREAD_Z 1 // スレッド数 Z成分
+
+#define PI 3.14159265
+
+// パーティクルデータの構造体
+struct ParticleData
+{
+	float3 velocity; // 速度
+	float3 position; // 位置
+};
+
+// 定数バッファ
+cbuffer CB
+{
+	float3 _Gravity;   // 重力
+	float3 _AreaSize;  // パーティクルが存在するエリアの大きさ
+	float  _TimeStep;  // タイムステップ
+}
+// 読み込み書き込みが可能なパーティクルデータを格納するバッファ
+RWStructuredBuffer<ParticleData> _ParticleBuffer;
+
+// 乱数(0.0~1.0)を返す関数
+float rand(float2 co)
+{
+    return frac(sin(dot(co.xy, float2(12.9898,78.233))) * 43758.5453);
+}
+
+// 半径1の球体の内部のランダムな点
+float3 randomInsideUnitSphere (float co)
+{  
+	float phi = 2 * PI * rand(co);
+	float th  = acos(1.0 - 2.0 * rand(co + float2(0.0, 0.1)));
+	float r   = pow(rand(co + float2(0.0, 0.2)), 0.333333333);
+  
+	float x = r * sin(th) * cos(phi);
+	float y = r * sin(th) * sin(phi);
+	float z = r * cos(th);
+  
+	return float3(x, y, z);
+}
+
+// ------------------------------------------------------------------
+// カーネル関数
+// ------------------------------------------------------------------
+// スレッド数を設定
+[numthreads(NUM_THREAD_X,NUM_THREAD_Y,NUM_THREAD_Z)]
+void CSMain ( uint3 Gid  : SV_GroupID,
+              uint3 GTid : SV_GroupThreadID,
+              uint3 DTid : SV_DispatchThreadID,
+			  uint  GI   : SV_GroupIndex )
+{
+	// パーティクルのインデックス
+	int idx = DTid.x;
+	// パーティクルの速度を読み込み
+	float3 velocity = _ParticleBuffer[idx].velocity;
+	// パーティクルの位置を読み込み
+	float3 position = _ParticleBuffer[idx].position;
+
+	// 加速度を計算
+	float3 acceleration = _Gravity.xyz;
+
+	// 速度を計算
+	velocity += acceleration * _TimeStep;
+	// 位置を計算
+	position += velocity     * _TimeStep;
+
+	// パーティクルがエリアの外にあるかどうか
+	if(position.x < -_AreaSize.x * 0.5 || position.x > _AreaSize.x * 0.5 ||
+	   position.y < -_AreaSize.y * 0.5 || position.y > _AreaSize.y * 0.5 ||
+	   position.z < -_AreaSize.z * 0.5 || position.z > _AreaSize.z * 0.5 )
+	{
+		// 速度と位置を初期化
+		float3 rnd = randomInsideUnitSphere(float2(idx, 0));
+		velocity = rnd;
+		position = rnd;
+	}
+	// 速度と位置をバッファに書き込み
+	_ParticleBuffer[idx].velocity = velocity;
+	_ParticleBuffer[idx].position = position;
+}
