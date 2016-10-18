@@ -1,0 +1,2 @@
+# SimpleComputeShaderExamples
+知の発見 ComputeShader入門の会のサンプルコード
