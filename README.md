@@ -2,7 +2,7 @@
 社内勉強会 ComputeShader入門 サンプルコード
 
 ### SimpleComputeShader
-DispatchThreadID.xyにの値をRenderTextureに書き込むサンプルコード
+DispatchThreadID.xyの値をRenderTextureに書き込むサンプルコード
 
 ### SimpleParticleSystem
 シンプルなパーティクルシステム
