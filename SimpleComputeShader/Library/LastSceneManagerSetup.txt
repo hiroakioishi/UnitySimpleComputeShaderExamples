@@ -1,4 +1,4 @@
 sceneSetups:
-- path: Assets/SimpleParticleSystemAppendConsumeBufferForDeadList/SimpleParticleSystemAppendCosumeBufferForDeadList.unity
+- path: Assets/ParticleSystemAppendConsumeBuffer/ParticleSystemAppendConsumeBuffer.unity
   isLoaded: 1
   isActive: 1
