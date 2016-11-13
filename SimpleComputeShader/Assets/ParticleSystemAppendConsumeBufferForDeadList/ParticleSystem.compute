@@ -1,0 +1,138 @@
+﻿#pragma kernel Init
+#pragma kernel Update
+#pragma kernel Emit
+
+// ------------------------------------------------------------------
+// 定数
+// ------------------------------------------------------------------
+#define NUM_THREAD_X 8 // スレッド数 X成分
+#define NUM_THREAD_Y 1 // スレッド数 Y成分
+#define NUM_THREAD_Z 1 // スレッド数 Z成分
+
+#define PI 3.14159265
+
+// ------------------------------------------------------------------
+// 構造体
+// ------------------------------------------------------------------
+// パーティクルデータの構造体
+struct ParticleData
+{
+	float3 velocity;	// 速度
+	float3 position;	// 位置
+	float  scale;		// スケール
+	float  age;			// 生成されてからの経過時間
+	float  lifeTime;    // 寿命
+	bool   alive;		// 生死
+};
+
+// ------------------------------------------------------------------
+// 変数
+// ------------------------------------------------------------------
+// 定数バッファ
+cbuffer CB
+{
+	float3 _Gravity;		// 重力
+	float2 _LifeTimeParams;	// 寿命 x:最小, y:最大
+	float  _Time;           // 経過時間
+	float  _DeltaTime;		// タイムステップ
+	float3 _EmitPosition;   // パーティクルを放出する位置
+}
+// 読み込み書き込みが可能なパーティクルデータを格納するバッファ
+RWStructuredBuffer<ParticleData> _ParticleBuffer;
+
+// 死んだパーティクルのIDを格納するバッファ(Append) → 書き込み時に使用
+AppendStructuredBuffer<int>  _ParticleDeadListBufferAppend;
+// 死んだパーティクルのIDを格納するバッファ(Consume) → 読み取り時に使用
+ConsumeStructuredBuffer<int> _ParticleDeadListBufferConsume;
+
+// ------------------------------------------------------------------
+// 関数
+// ------------------------------------------------------------------
+// 乱数(0.0~1.0)を返す関数
+float rand(float2 co)
+{
+	return frac(sin(dot(co.xy, float2(12.9898, 78.233))) * 43758.5453);
+}
+
+// 半径1の球体の内部のランダムな点
+float3 randomInsideUnitSphere(float co)
+{
+	float phi = 2 * PI * rand(co);
+	float th = acos(1.0 - 2.0 * rand(co + float2(0.0, 0.1)));
+	float r = pow(rand(co + float2(0.0, 0.2)), 0.333333333);
+
+	float x = r * sin(th) * cos(phi);
+	float y = r * sin(th) * sin(phi);
+	float z = r * cos(th);
+
+	return float3(x, y, z);
+}
+
+// ------------------------------------------------------------------
+// カーネル関数
+// ------------------------------------------------------------------
+// 初期化
+[numthreads(NUM_THREAD_X, 1, 1)]
+void Init(uint3 DTid : SV_DispatchThreadID)
+{
+	uint idx = DTid.x;
+	
+	_ParticleBuffer[idx].scale = 0.0;
+	_ParticleBuffer[idx].age   = 0.0;
+	_ParticleBuffer[idx].alive = false;
+	
+	_ParticleDeadListBufferAppend.Append(idx);
+}
+
+// 更新
+[numthreads(NUM_THREAD_X, 1, 1)]
+void Update(uint3 DTid : SV_DispatchThreadID)
+{
+	uint idx = DTid.x;
+
+	ParticleData p = _ParticleBuffer[idx];
+
+	// 生きているならば
+	if (p.alive)
+	{
+		// 加齢
+		p.age += _DeltaTime;
+		
+		// 速度更新
+		p.velocity += _Gravity * _DeltaTime;
+		// 位置更新
+		p.position += p.velocity * _DeltaTime;
+
+		// 寿命を迎えている場合
+		if (p.age > p.lifeTime)
+		{
+			// DeadListに追加
+			p.alive = false;
+			p.scale = 0.0;
+			_ParticleDeadListBufferAppend.Append(idx);
+		}
+	} else {
+		// スケールを0とする
+		p.scale = 0.0f;
+	}
+
+	_ParticleBuffer[idx] = p;
+}
+
+// 放出
+[numthreads(NUM_THREAD_X, 1, 1)]
+void Emit()
+{
+	// DeadListから死んでいるパーティクルのIDを取得
+	uint idx = _ParticleDeadListBufferConsume.Consume();
+
+	ParticleData p = _ParticleBuffer[idx];
+	p.alive     = true;
+	p.position  = randomInsideUnitSphere(idx + 0.1 + _Time) * 0.25 + _EmitPosition;
+	p.velocity  = randomInsideUnitSphere(idx + 0.2 + _Time);
+	p.scale     = 1.0;
+	p.age       = 0.0;
+	p.lifeTime  = _LifeTimeParams.x + (_LifeTimeParams.y - _LifeTimeParams.x) * rand(float2(idx + 0.3, _Time));
+
+	_ParticleBuffer[idx] = p;
+}

@@ -1,4 +1,4 @@
-﻿Shader "Hidden/SimpleParticleRender"
+﻿Shader "Hidden/ParticleSystemAppendConsumeBuffer/SimpleParticleRender"
 {
 	CGINCLUDE
 	#include "UnityCG.cginc"
@@ -10,6 +10,7 @@
 		float3 position;
 		float  scale;
 		float  age;
+		float  lifeTime;
 	};
 	// VertexShaderからGeometryShaderに渡すデータの構造体
 	struct v2g

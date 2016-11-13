@@ -1,4 +1,4 @@
-﻿Shader "Hidden/SimpleParticleRender"
+﻿Shader "Hidden/ParticleSystemAppendConsumeBufferForDeadList/SimpleParticleRender"
 {
 	CGINCLUDE
 	#include "UnityCG.cginc"
@@ -9,7 +9,8 @@
 		float3 velocity;
 		float3 position;
 		float  scale;
-		float  lifeTimer;
+		float  age;
+		float  lifeTime;
 		bool   alive;
 	};
 	// VertexShaderからGeometryShaderに渡すデータの構造体
@@ -63,7 +64,8 @@
 		o.position = _ParticleBuffer[id].position;
 		// パーティクルの速度を色に反映
 		o.color    = float4(0.5 + 0.5 * normalize(_ParticleBuffer[id].velocity), 1.0);
-		o.size     = _ParticleBuffer[id].alive ? 1.0 : 0.0;
+		// 死んでいるパーティクルはスケールを0にして描画しない
+		o.size     = _ParticleBuffer[id].scale;
 		return o;
 	}
 
