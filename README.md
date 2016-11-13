@@ -10,7 +10,7 @@ DispatchThreadID.xyの値をRenderTextureに書き込むサンプルコード
 ### ParticleSystemAppendConsumeBuffer
 Particleのデータを格納するバッファにAppendStructuredBufferを使用<br/>
 パーティクルのレンダリングは Graphics.DrawProceduralIndirect()で行う<br/>
-書き込み（Append）用と、読み込み（Consume)用に、2つのComputeBufferType.Appendのバッファを用意し、パーティクルの更新時に、ConsumeStructuredBufferから現存するパーティクルのデータを読み取り、寿命を迎えていないものだけAppendStructuredBufferにAppendすることによって、パーティクルを管理している。<br/>
+書き込み（Append）用と、読み込み（Consume)用に、2つのComputeBufferType.Appendのバッファを用意し、パーティクルの更新時に、ConsumeStructuredBufferから現存するパーティクルのデータを読み取り、寿命を迎えていないものだけAppendStructuredBufferにAppendすることによって、パーティクルを増減させている。<br/>
 （パーティクルの更新と、レンダリングの前にそれぞれ現存するパーティクルの個数、Indirect引数取得のためにCopyCountしてるけどあまり良くないかも…）<br/>
 <https://www.youtube.com/watch?v=hP5KA9HtRYA>
 
